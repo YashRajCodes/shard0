@@ -88,7 +88,7 @@ async fn process_message(
             redis_conn
                 .xadd_maxlen::<_, _, _, _, ()>(
                     &stream_key,
-                    redis::streams::StreamMaxlen::Approx(1_000_000),
+                    redis::streams::StreamMaxlen::Approx(1000),
                     "*",
                     &[("event", text.as_str())],
                 )
