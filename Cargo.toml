@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.102"
+axum = { version = "0.8.9", features = ["ws"] }
 futures-util = "0.3.32"
 redis = { version = "1.2.0", features = ["aio", "tokio-comp"] }
 rustls = { version = "0.23.38", features = ["ring"] }
@@ -16,3 +17,11 @@ tracing-subscriber = "0.3.23"
 twilight-gateway = "0.17.1"
 twilight-http = "0.17.1"
 twilight-model = "0.17.1"
+
+[[bin]]
+name = "shard0"
+path = "src/main.rs"
+
+[[bin]]
+name = "shard0-proxy"
+path = "src/proxy.rs"
