@@ -43,13 +43,9 @@ async fn main() -> anyhow::Result<()> {
     while let Some(item) = shard.next().await {
         match item {
             Ok(Message::Text(text)) => {
-                let redis_conn = redis_conn.clone();
-
-                tokio::spawn(async move {
-                    if let Err(e) = process_message(text, redis_conn).await {
-                        tracing::warn!(?e, "failed to process message");
-                    }
-                });
+                if let Err(e) = process_message(text, redis_conn.clone()).await {
+                    tracing::warn!(?e, "failed to process message");
+                }
             }
             Ok(_) => {}
             Err(source) => {
@@ -69,6 +65,12 @@ async fn process_message(
 
     if payload.op == 0 {
         if let (Some(event_type), Some(data)) = (payload.t, payload.d) {
+            if event_type == "READY" {
+                redis_conn.set::<_, _, ()>("subshard:ready", &text).await?;
+                tracing::info!("subshard:ready updated");
+                return Ok(());
+            }
+
             let id_str = data.channel_id.as_deref().or(data.id.as_deref());
 
             let target_subshard = id_str
