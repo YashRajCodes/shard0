@@ -4,9 +4,6 @@ use serde::Deserialize;
 use std::env;
 use twilight_gateway::{Config, Intents, Message, Shard, ShardId};
 
-const TOTAL_SUBSHARDS: u64 = 4;
-const TOTAL_SHARDS: u32 = 2;
-
 #[derive(Deserialize)]
 struct GatewayPayload {
     op: u8,
@@ -29,6 +26,9 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
     rustls::crypto::ring::default_provider().install_default().unwrap();
 
+    let total_subshards: u64 = env::var("TOTAL_SUBSHARDS").ok().and_then(|v| v.parse().ok()).unwrap_or(4);
+    let total_shards: u32 = env::var("TOTAL_SHARDS").ok().and_then(|v| v.parse().ok()).unwrap_or(2);
+
     let token = env::var("DISCORD_TOKEN")?;
     let redis_url = env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1/".to_string());
 
@@ -36,14 +36,14 @@ async fn main() -> anyhow::Result<()> {
     let redis_conn = redis_client.get_multiplexed_async_connection().await?;
 
     let config = Config::new(token, Intents::all());
-    let mut shard = Shard::with_config(ShardId::new(0, TOTAL_SHARDS), config);
+    let mut shard = Shard::with_config(ShardId::new(0, total_shards), config);
 
-    tracing::info!("shard 0/{} -> {} subshards", TOTAL_SHARDS, TOTAL_SUBSHARDS);
+    tracing::info!("shard 0/{} -> {} subshards", total_shards, total_subshards);
 
     while let Some(item) = shard.next().await {
         match item {
             Ok(Message::Text(text)) => {
-                if let Err(e) = process_message(text, redis_conn.clone()).await {
+                if let Err(e) = process_message(text, redis_conn.clone(), total_subshards).await {
                     tracing::warn!(?e, "failed to process message");
                 }
             }
@@ -60,6 +60,7 @@ async fn main() -> anyhow::Result<()> {
 async fn process_message(
     text: String,
     mut redis_conn: redis::aio::MultiplexedConnection,
+    total_subshards: u64,
 ) -> anyhow::Result<()> {
     let payload: GatewayPayload = serde_json::from_slice(text.as_bytes())?;
 
@@ -75,7 +76,7 @@ async fn process_message(
 
             let target_subshard = id_str
                 .and_then(|s| s.parse::<u64>().ok())
-                .map(|id_u64| id_u64 % TOTAL_SUBSHARDS)
+                .map(|id_u64| id_u64 % total_subshards)
                 .unwrap_or(0);
 
             tracing::debug!(
