@@ -1,6 +1,6 @@
 [package]
 name = "shard0"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2024"
 
 [dependencies]
@@ -23,3 +23,10 @@ path = "src/main.rs"
 [[bin]]
 name = "shard0-proxy"
 path = "src/proxy.rs"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
