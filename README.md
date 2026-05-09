@@ -1,7 +1,8 @@
 # shard0
 
-This project lets you subshard shard 0 of a discord bot. Since shard 0 handles all the direct messages, a bot can run into performance issues on shard 0 if the bot deals with a lot of DMs. 
-This tries to resolve the issue by sharding DMs based on the DM channel id and lets the bot client connect to a proxy.
+shard0 is a high-performance Rust utility designed to solve a specific scaling bottleneck in the Discord API: the Shard 0 DM concentration. In the Discord gateway architecture, all Direct Messages (DMs) are routed exclusively to Shard 0. For large-scale bots, this single shard often becomes a performance bottleneck while other shards remain underutilized.
+
+This project introduces a subsharding layer that intercepts Shard 0 traffic and redistributes it across multiple proxy instances based on DM channel IDs. This allows developers to scale DM processing horizontally without changing their bot's core logic.
 
 ## Configuration
 
